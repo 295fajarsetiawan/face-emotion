@@ -1,0 +1,28 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Flask / local config
+.env
+.flaskenv
+
+# IDE / OS files
+.DS_Store
+.idea/
+.vscode/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build / temp
+dist/
+build/
+*.log

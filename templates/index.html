@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deteksi Muka Web</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.78);
+      --panel-2: rgba(30, 41, 59, 0.9);
+      --line: rgba(148, 163, 184, 0.18);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --accent-2: #38bdf8;
+      --shadow: 0 24px 80px rgba(2, 6, 23, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.24), transparent 32%),
+        radial-gradient(circle at right center, rgba(34, 197, 94, 0.18), transparent 30%),
+        linear-gradient(135deg, #020617 0%, #0f172a 44%, #111827 100%);
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 40px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+      align-items: stretch;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .intro {
+      padding: 28px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      background: rgba(15, 23, 42, 0.55);
+      color: var(--accent-2);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 16px 0 12px;
+      font-size: clamp(2.1rem, 4vw, 4.2rem);
+      line-height: 0.98;
+      letter-spacing: -0.05em;
+    }
+
+    .lead {
+      max-width: 60ch;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.03rem;
+      line-height: 1.7;
+    }
+
+    .stats {
+      display: grid;
+      gap: 14px;
+      padding: 28px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.92));
+    }
+
+    .stat {
+      padding: 18px;
+      border-radius: 18px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .viewer {
+      padding: 20px;
+    }
+
+    .viewer-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .viewer-head h2,
+    .panel h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    button,
+    .file-label,
+    select {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+    }
+
+    button:hover,
+    .file-label:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary {
+      color: #052e16;
+      background: linear-gradient(135deg, #86efac, #22c55e);
+    }
+
+    .secondary {
+      color: var(--text);
+      background: rgba(148, 163, 184, 0.12);
+      border: 1px solid var(--line);
+    }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    select {
+      color: var(--text);
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid var(--line);
+      min-width: 240px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .video-shell {
+      position: relative;
+      overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: #020617;
+      aspect-ratio: 16 / 10;
+    }
+
+    video,
+    canvas,
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: white;
+      text-align: center;
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(2, 6, 23, 0.08), rgba(2, 6, 23, 0.45));
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    .preview {
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #020617;
+      min-height: 180px;
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .face-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .summary {
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(56, 189, 248, 0.18);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.84), rgba(2, 6, 23, 0.92));
+    }
+
+    .summary-headline {
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: #e2e8f0;
+    }
+
+    .summary-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    .summary-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 2px 0;
+      color: var(--text);
+    }
+
+    .summary-label {
+      min-width: 10ch;
+      font-weight: 700;
+    }
+
+    .summary-colon {
+      color: var(--muted);
+    }
+
+    .summary-value {
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      color: #86efac;
+    }
+
+    .face-item,
+    .face-empty {
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.72);
+    }
+
+    .face-title {
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .face-emotion {
+      margin-top: 6px;
+      color: #86efac;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .face-meta,
+    .face-empty {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .hint {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        width: min(100% - 20px, 1180px);
+        padding: 16px 0 24px;
+      }
+
+      .intro,
+      .stats,
+      .viewer,
+      .panel {
+        padding: 16px;
+      }
+
+      .controls {
+        flex-direction: column;
+      }
+
+      button,
+      .file-label {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="card intro">
+        <span class="eyebrow">Web Emotion Detection</span>
+        <h1>Deteksi emosi dari banyak wajah langsung di browser.</h1>
+        <p class="lead">
+          Aplikasi ini mengubah skrip kamera Python menjadi web app. Buka halaman ini,
+          izinkan kamera, lalu sistem akan menandai setiap wajah dan membaca emosi seperti
+          senang, sedih, marah, takut, dan lainnya.
+        </p>
+      </div>
+      <div class="card stats">
+        <div class="stat">
+          <div class="stat-label">Status kamera</div>
+          <div class="stat-value" id="cameraStatus">Belum aktif</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Jumlah siswa</div>
+          <div class="stat-value" id="faceCount">0</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="card viewer">
+        <div class="viewer-head">
+          <h2>Live Camera</h2>
+          <div class="controls">
+            <select id="cameraSelect" aria-label="Pilih kamera"></select>
+            <button class="primary" id="startBtn">Aktifkan Kamera</button>
+            <button class="secondary" id="stopBtn" disabled>Matikan</button>
+          </div>
+        </div>
+
+        <div class="video-shell">
+          <video id="video" autoplay playsinline muted></video>
+          <div class="overlay" id="overlay">
+            <div>
+              <div style="font-size: 1.2rem; font-weight: 800; margin-bottom: 8px;">Kamera belum aktif</div>
+              <div style="color: rgba(255,255,255,0.78);">Klik "Aktifkan Kamera" untuk mulai analisis emosi.</div>
+            </div>
+          </div>
+          <canvas id="captureCanvas" hidden></canvas>
+        </div>
+
+        <div class="hint">
+          Setiap wajah yang terdeteksi akan dianalisis satu per satu. Kalau ada beberapa
+          orang di frame, semuanya akan diberi label emosi. Opsi default memakai kamera laptop,
+          lalu kamu bisa pindah ke webcam lain dari dropdown.
+        </div>
+      </div>
+
+      <aside class="card panel">
+        <h2>Hasil Deteksi</h2>
+        <div class="controls" style="margin-top: 12px;">
+          <label class="file-label" for="fileInput">Upload Foto</label>
+          <input type="file" id="fileInput" accept="image/*">
+        </div>
+        <div class="preview">
+          <img id="resultImage" alt="Hasil deteksi akan muncul di sini">
+        </div>
+        <div class="summary" id="summaryBox">
+          <div class="summary-headline" id="summaryHeadline">0 siswa terdeteksi</div>
+          <div class="summary-list" id="summaryList"></div>
+        </div>
+        <div class="face-list" id="faceList"></div>
+        <div class="status" id="statusBox">
+          Siap. Aktifkan kamera atau upload foto untuk mulai membaca emosi banyak wajah.
+        </div>
+      </aside>
+    </section>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("captureCanvas");
+    const resultImage = document.getElementById("resultImage");
+    const statusBox = document.getElementById("statusBox");
+    const cameraStatus = document.getElementById("cameraStatus");
+    const faceCount = document.getElementById("faceCount");
+    const faceList = document.getElementById("faceList");
+    const summaryBox = document.getElementById("summaryBox");
+    const summaryHeadline = document.getElementById("summaryHeadline");
+    const summaryList = document.getElementById("summaryList");
+    const overlay = document.getElementById("overlay");
+    const cameraSelect = document.getElementById("cameraSelect");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const fileInput = document.getElementById("fileInput");
+
+    let stream = null;
+    let detectTimer = null;
+    let busy = false;
+    let lastSelectedDeviceId = "";
+
+    function setStatus(message) {
+      statusBox.textContent = message;
+    }
+
+    function renderFaceList(faces) {
+      faceList.innerHTML = "";
+
+      if (!faces || faces.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "face-empty";
+        empty.textContent = "Belum ada wajah yang terdeteksi.";
+        faceList.appendChild(empty);
+        return;
+      }
+
+      faces.forEach((face) => {
+        const item = document.createElement("div");
+        item.className = "face-item";
+
+        const title = document.createElement("div");
+        title.className = "face-title";
+        title.textContent = `Wajah ${face.id}`;
+
+        const emotion = document.createElement("div");
+        emotion.className = "face-emotion";
+        emotion.textContent = face.emotion_label;
+
+        const meta = document.createElement("div");
+        meta.className = "face-meta";
+        meta.textContent = `Confidence ${face.confidence}%`;
+
+        item.appendChild(title);
+        item.appendChild(emotion);
+        item.appendChild(meta);
+        faceList.appendChild(item);
+      });
+    }
+
+    function renderEmotionSummary(faces) {
+      const orderedLabels = [
+        "Marah",
+        "Jijik",
+        "Takut",
+        "Senang",
+        "Sedih",
+        "Terkejut",
+        "Netral",
+      ];
+      const counts = new Map();
+      const total = Array.isArray(faces) ? faces.length : 0;
+
+      (faces || []).forEach((face) => {
+        const label = face && face.emotion_label ? face.emotion_label : "Lainnya";
+        counts.set(label, (counts.get(label) || 0) + 1);
+      });
+
+      summaryHeadline.textContent = `${total} siswa terdeteksi`;
+      summaryList.innerHTML = "";
+
+      if (total === 0) {
+        summaryBox.style.display = "none";
+        return;
+      }
+
+      summaryBox.style.display = "block";
+
+      orderedLabels.forEach((label) => {
+        if (!counts.has(label)) return;
+
+        const row = document.createElement("div");
+        row.className = "summary-row";
+
+        const left = document.createElement("div");
+        left.className = "summary-label";
+        left.textContent = label;
+
+        const colon = document.createElement("div");
+        colon.className = "summary-colon";
+        colon.textContent = ":";
+
+        const right = document.createElement("div");
+        right.className = "summary-value";
+        right.textContent = counts.get(label);
+
+        row.appendChild(left);
+        row.appendChild(colon);
+        row.appendChild(right);
+        summaryList.appendChild(row);
+      });
+
+      counts.forEach((value, label) => {
+        if (orderedLabels.includes(label)) return;
+
+        const row = document.createElement("div");
+        row.className = "summary-row";
+
+        const left = document.createElement("div");
+        left.className = "summary-label";
+        left.textContent = label;
+
+        const colon = document.createElement("div");
+        colon.className = "summary-colon";
+        colon.textContent = ":";
+
+        const right = document.createElement("div");
+        right.className = "summary-value";
+        right.textContent = value;
+
+        row.appendChild(left);
+        row.appendChild(colon);
+        row.appendChild(right);
+        summaryList.appendChild(row);
+      });
+    }
+
+    function updateCameraState(active) {
+      cameraStatus.textContent = active ? "Aktif" : "Belum aktif";
+      overlay.classList.toggle("hidden", active);
+      startBtn.disabled = active;
+      stopBtn.disabled = !active;
+    }
+
+    function clearActiveStream() {
+      if (detectTimer) {
+        clearInterval(detectTimer);
+        detectTimer = null;
+      }
+
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        stream = null;
+      }
+
+      video.srcObject = null;
+      updateCameraState(false);
+    }
+
+    async function loadCameraList(preferredDeviceId = "") {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter((device) => device.kind === "videoinput");
+
+      cameraSelect.innerHTML = "";
+
+      const laptopOption = document.createElement("option");
+      laptopOption.value = "user";
+      laptopOption.textContent = "Kamera laptop (default)";
+      cameraSelect.appendChild(laptopOption);
+
+      if (videoDevices.length === 0) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "Tidak ada kamera ditemukan";
+        cameraSelect.appendChild(option);
+        cameraSelect.disabled = true;
+        startBtn.disabled = true;
+        return [];
+      }
+
+      cameraSelect.disabled = false;
+
+      videoDevices.forEach((device, index) => {
+        const option = document.createElement("option");
+        option.value = device.deviceId;
+        option.textContent = device.label || `Kamera ${index + 1}`;
+        cameraSelect.appendChild(option);
+      });
+
+      const targetDeviceId =
+        preferredDeviceId ||
+        lastSelectedDeviceId ||
+        "user" ||
+        (videoDevices[0] && videoDevices[0].deviceId);
+
+      if (targetDeviceId) {
+        cameraSelect.value = targetDeviceId;
+        lastSelectedDeviceId = targetDeviceId;
+      }
+
+      return videoDevices;
+    }
+
+    async function postFrame(blob) {
+      const formData = new FormData();
+      formData.append("image", blob, "frame.jpg");
+
+      const response = await fetch("/api/detect", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || "Gagal mendeteksi gambar");
+      }
+
+      return response.json();
+    }
+
+    async function captureAndDetect() {
+      if (!stream || busy || video.videoWidth === 0) return;
+      busy = true;
+
+      try {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d", { willReadFrequently: false });
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+        if (!blob) return;
+
+        const data = await postFrame(blob);
+        resultImage.src = data.image;
+        faceCount.textContent = data.face_count;
+        renderEmotionSummary(data.faces);
+        renderFaceList(data.faces);
+        if (data.face_count > 0) {
+          setStatus(`${data.face_count} siswa terdeteksi pada frame terakhir.`);
+        } else {
+          setStatus("Tidak ada wajah yang terdeteksi pada frame ini.");
+        }
+      } catch (error) {
+        setStatus(error.message);
+      } finally {
+        busy = false;
+      }
+    }
+
+    async function openCamera(constraints) {
+      return navigator.mediaDevices.getUserMedia({
+        video: constraints,
+        audio: false,
+      });
+    }
+
+    async function startCamera(deviceId) {
+      try {
+        clearActiveStream();
+
+        const selectedDeviceId = deviceId || cameraSelect.value || lastSelectedDeviceId || "user";
+        const attempts = [];
+
+        if (selectedDeviceId && selectedDeviceId !== "user") {
+          attempts.push({ deviceId: { exact: selectedDeviceId } });
+        }
+
+        attempts.push({ facingMode: { ideal: "user" } });
+        attempts.push({ facingMode: "user" });
+        attempts.push(true);
+
+        let lastError = null;
+        for (const videoConstraints of attempts) {
+          try {
+            stream = await openCamera(videoConstraints);
+            break;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+
+        if (!stream) {
+          throw lastError || new Error("Kamera tidak bisa dibuka");
+        }
+
+        video.srcObject = stream;
+        await video.play();
+
+        lastSelectedDeviceId = selectedDeviceId || "user";
+        updateCameraState(true);
+        setStatus("Kamera aktif. Mulai memindai wajah...");
+
+        await loadCameraList(lastSelectedDeviceId);
+
+        detectTimer = setInterval(captureAndDetect, 450);
+        captureAndDetect();
+      } catch (error) {
+        setStatus("Tidak bisa membuka kamera: " + error.message);
+        clearActiveStream();
+      }
+    }
+
+    function stopCamera() {
+      clearActiveStream();
+      setStatus("Kamera dimatikan.");
+    }
+
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+
+      try {
+        setStatus("Memproses foto...");
+        const data = await postFrame(file);
+        resultImage.src = data.image;
+        faceCount.textContent = data.face_count;
+        renderEmotionSummary(data.faces);
+        renderFaceList(data.faces);
+        if (data.face_count > 0) {
+          setStatus(`Upload selesai. ${data.face_count} siswa terdeteksi.`);
+        } else {
+          setStatus("Upload selesai, tetapi tidak ada wajah yang terdeteksi.");
+        }
+      } catch (error) {
+        setStatus(error.message);
+      } finally {
+        fileInput.value = "";
+      }
+    });
+
+    cameraSelect.addEventListener("change", async () => {
+      lastSelectedDeviceId = cameraSelect.value;
+      if (stream) {
+        await startCamera(cameraSelect.value);
+      }
+    });
+
+    startBtn.addEventListener("click", startCamera);
+    stopBtn.addEventListener("click", stopCamera);
+    updateCameraState(false);
+    summaryBox.style.display = "none";
+    renderFaceList([]);
+    renderEmotionSummary([]);
+
+    navigator.mediaDevices?.addEventListener?.("devicechange", () => {
+      loadCameraList(lastSelectedDeviceId).catch(() => {});
+    });
+
+    loadCameraList().catch(() => {
+      cameraSelect.innerHTML = '<option value="">Kamera tidak tersedia</option>';
+      cameraSelect.disabled = true;
+    });
+  </script>
+</body>
+</html>
